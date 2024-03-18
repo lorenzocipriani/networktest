@@ -1,7 +1,9 @@
-FROM golang:alpine AS telegraf-builder
+FROM golang:alpine AS image-assembler
 WORKDIR /root
-RUN apk update && apk upgrade --no-cache \
-    && apk add --no-cache binutils git make \
+RUN apk update && apk upgrade --no-cache && \
+    apk add --no-cache bmon bpftool bpftrace ethtool htop iftop iperf3 iproute2 \
+    iproute2-ss mtr net-tools procps-ng strace tcpdump zabbix-agent \
+    binutils git make \
     && git clone https://github.com/influxdata/telegraf.git \
     && cd /root/telegraf \
     && make build_tools \
@@ -11,16 +13,13 @@ RUN apk update && apk upgrade --no-cache \
     && ./telegraf config create > ./telegraf.conf
 
 
-FROM alpine:latest AS image-assembler
-WORKDIR /root
-RUN apk update && apk upgrade --no-cache && \
-    apk add --no-cache bmon bpftool bpftrace ethtool htop iftop iperf3 iproute2 \
-    iproute2-ss mtr net-tools procps-ng strace tcpdump zabbix-agent
-
-
 FROM alpine:latest
 WORKDIR /root
 RUN mkdir -p /etc/telegraf && mkdir -p /etc/zabbix
+# alpine updates
+COPY --from=image-assembler /bin/busybox /bin/
+COPY --from=image-assembler /sbin/apk /sbin/
+COPY --from=image-assembler /sbin/ldconfig /sbin/
 # bmon
 COPY --from=image-assembler /usr/bin/bmon /usr/bin/
 # bpftool, ethtool
@@ -32,6 +31,8 @@ COPY --from=image-assembler /usr/bin/htop /usr/bin/
 COPY --from=image-assembler /usr/share/applications/htop.desktop /usr/share/applications/
 COPY --from=image-assembler /usr/share/icons/hicolor/128x128/apps/htop.png /usr/share/icons/hicolor/128x128/apps/
 COPY --from=image-assembler /usr/share/icons/hicolor/scalable/apps/htop.svg /usr/share/icons/hicolor/scalable/apps/
+# iftop
+COPY --from=image-assembler /usr/sbin/iftop /usr/sbin/
 # iperf3
 COPY --from=image-assembler /usr/bin/iperf3 /usr/bin/
 COPY --from=image-assembler /usr/lib/libiperf* /usr/lib/
@@ -50,7 +51,6 @@ COPY --from=image-assembler /sbin/rtstat /sbin/
 COPY --from=image-assembler /usr/sbin/mtr* /usr/sbin/
 # net-tools
 COPY --from=image-assembler /bin/netstat /bin/
-COPY --from=image-assembler /bin/route /bin/
 COPY --from=image-assembler /sbin/ipmaddr /sbin/
 COPY --from=image-assembler /sbin/plipconfig /sbin/
 COPY --from=image-assembler /sbin/rarp /sbin/
@@ -62,10 +62,9 @@ COPY --from=image-assembler /bin/w /bin/
 COPY --from=image-assembler /usr/bin/strace* /usr/bin/
 # tcpdump
 COPY --from=image-assembler /usr/bin/tcpdump /usr/bin/
-# mtr, iftop, zabbix
-COPY --from=image-assembler /usr/sbin/* /usr/sbin/
 # zabbix
+COPY --from=image-assembler /usr/sbin/zabbix_agentd /usr/sbin/
 COPY --from=image-assembler /etc/zabbix/zabbix_agentd.conf /etc/zabbix/
 # telegraf
-COPY --from=telegraf-builder /root/telegraf/telegraf /usr/bin/telegraf
-COPY --from=telegraf-builder /root/telegraf/telegraf.conf /etc/telegraf/
+COPY --from=image-assembler /root/telegraf/telegraf /usr/bin/telegraf
+COPY --from=image-assembler /root/telegraf/telegraf.conf /etc/telegraf/
