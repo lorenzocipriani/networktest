@@ -26,82 +26,116 @@ RUN apk update && apk upgrade --no-cache && \
 FROM alpine:latest
 WORKDIR /
 RUN mkdir -p /etc/telegraf && mkdir -p /etc/zabbix
-# alpine updates
-COPY --from=image-assembler /bin/busybox /bin/
-COPY --from=image-assembler /sbin/apk /sbin/
-COPY --from=image-assembler /sbin/ldconfig /sbin/
-# bmon
-COPY --from=image-assembler /usr/bin/bmon /usr/bin/
-COPY --from=image-assembler /usr/lib/libncursesw.so.6 /usr/lib/
-COPY --from=image-assembler /usr/lib/libconfuse.so.2 /usr/lib/
-COPY --from=image-assembler /usr/lib/libnl-3.so.200 /usr/lib
-COPY --from=image-assembler /usr/lib/libnl-route-3.so.200 /usr/lib/
-# bpftool, ethtool
-COPY --from=image-assembler /usr/sbin/*tool /usr/sbin/
-COPY --from=image-assembler /usr/lib/libelf.so.1 /usr/lib/
-COPY --from=image-assembler /usr/lib/libcap.so.2 /usr/lib/
-COPY --from=image-assembler /usr/lib/libbfd-2.41.so /usr/lib/
-COPY --from=image-assembler /usr/lib/libopcodes-2.41.so /usr/lib/
-COPY --from=image-assembler /usr/lib/libzstd.so.1 /usr/lib/
-COPY --from=image-assembler /usr/lib/libsframe.so.1 /usr/lib/
-COPY --from=image-assembler /usr/lib/libmnl.so.0 /usr/lib/
-# bpftrace
-COPY --from=image-assembler /usr/bin/bpftrace* /usr/bin/
-COPY --from=image-assembler /usr/lib/libbpf.so.1 /usr/lib/
-COPY --from=image-assembler /usr/lib/libbcc_bpf.so.0 /usr/lib/
-COPY --from=image-assembler /usr/lib/libdw.so.1 /usr/lib/
-COPY --from=image-assembler /usr/lib/libclang.so.17 /usr/lib/
-COPY --from=image-assembler /usr/lib/libLLVM-17.so /usr/lib/
-COPY --from=image-assembler /usr/lib/libstdc++.so.6 /usr/lib/
-COPY --from=image-assembler /usr/lib/libgcc_s.so.1 /usr/lib/
-COPY --from=image-assembler /usr/lib/liblzma.so.5 /usr/lib/
-COPY --from=image-assembler /usr/lib/libfts.so.0 /usr/lib/
-COPY --from=image-assembler /usr/lib/libbz2.so.1 /usr/lib/
-COPY --from=image-assembler /usr/lib/libffi.so.8 /usr/lib/
-COPY --from=image-assembler /usr/lib/libxml2.so.2 /usr/lib/
-# htop
-COPY --from=image-assembler /usr/bin/htop /usr/bin/
+# alpine updates & /bin executables
+COPY --from=image-assembler /bin/busybox \
+    # net-tools
+    /bin/netstat \
+    # procps-ng
+    /bin/slabtop \
+    /bin/vmstat \
+    /bin/w \
+    #
+    /bin/
+
+    COPY --from=image-assembler \
+    /sbin/apk \
+    /sbin/ldconfig \
+    /sbin/
+
+# /usr/bin executables
+COPY --from=image-assembler \
+    # bmon
+    /usr/bin/bmon \
+    # htop
+    /usr/bin/htop \
+    # iperf3
+    /usr/bin/iperf3 \
+    # strace
+    /usr/bin/strace* \
+    # tcpdump
+    /usr/bin/tcpdump \
+    # telegraf
+    /root/telegraf/telegraf \
+    /usr/bin/
+
+# /usr/sbin executables
+COPY --from=image-assembler \
+    # bpftool, ethtool
+    /usr/sbin/*tool \
+    # iftop
+    /usr/sbin/iftop \
+    # mtr
+    /usr/sbin/mtr* \
+    # net-tools
+    /sbin/ipmaddr \
+    /sbin/plipconfig \
+    /sbin/rarp \
+
+    /usr/sbin/
+
+# /sbin executables
+COPY --from=image-assembler \
+    # iproute2
+    /sbin/bridge \
+    /sbin/ctstat \
+    /sbin/genl \
+    /sbin/ifstat \
+    /sbin/lnstat \
+    /sbin/nstat \
+    /sbin/routel \
+    /sbin/rtacct \
+    /sbin/rtmon \
+    /sbin/rtstat \
+    #
+    /sbin/
+
+# Shared libraries in /lib
+COPY --from=image-assembler \
+    # procps-ng
+    /lib/libproc2.so.0 \
+    /lib/
+
+# Shared libraries in /usr/lib
+COPY --from=image-assembler \
+    # bpftool, ethtool
+    /usr/lib/libelf.so.1 \
+    /usr/lib/libcap.so.2 \
+    /usr/lib/libbfd-2.41.so \
+    /usr/lib/libopcodes-2.41.so \
+    /usr/lib/libzstd.so.1 \
+    /usr/lib/libsframe.so.1 \
+    /usr/lib/libmnl.so.0 \
+    # bmon
+    /usr/lib/libncursesw.so.6 \
+    /usr/lib/libconfuse.so.2 \
+    /usr/lib/libnl-3.so.200 \
+    /usr/lib/libnl-route-3.so.200 \
+    # iperf3
+    /usr/lib/libiperf* \
+    # mtr
+    /usr/lib/libjansson.so.4 \
+    # /usr/lib/libncursesw.so.6 \
+    # procps-ng
+    # /usr/lib/libncursesw.so.6 \
+    /usr/lib/libintl.so.8 \
+    # strace
+    /usr/lib/libdw.so.1 \
+    # /usr/lib/libelf.so. \
+    /lib/libz.so.1 \
+    /usr/lib/libfts.so.0 \
+    # /usr/lib/libzstd.so.1 \
+    /usr/lib/liblzma.so.5 \
+    /usr/lib/libbz2.so.1 \
+    # tcpdump
+    /usr/lib/libpcap.so.1 \
+    /usr/lib/
+
+# htop extra
 COPY --from=image-assembler /usr/share/applications/htop.desktop /usr/share/applications/
 COPY --from=image-assembler /usr/share/icons/hicolor/128x128/apps/htop.png /usr/share/icons/hicolor/128x128/apps/
 COPY --from=image-assembler /usr/share/icons/hicolor/scalable/apps/htop.svg /usr/share/icons/hicolor/scalable/apps/
-# iftop
-COPY --from=image-assembler /usr/sbin/iftop /usr/sbin/
-# iperf3
-COPY --from=image-assembler /usr/bin/iperf3 /usr/bin/
-COPY --from=image-assembler /usr/lib/libiperf* /usr/lib/
-# iproute2
-COPY --from=image-assembler /sbin/bridge /sbin/
-COPY --from=image-assembler /sbin/ctstat /sbin/
-COPY --from=image-assembler /sbin/genl /sbin/
-COPY --from=image-assembler /sbin/ifstat /sbin/
-COPY --from=image-assembler /sbin/lnstat /sbin/
-COPY --from=image-assembler /sbin/nstat /sbin/
-COPY --from=image-assembler /sbin/routel /sbin/
-COPY --from=image-assembler /sbin/rtacct /sbin/
-COPY --from=image-assembler /sbin/rtmon /sbin/
-COPY --from=image-assembler /sbin/rtstat /sbin/
-# mtr
-COPY --from=image-assembler /usr/sbin/mtr* /usr/sbin/
-COPY --from=image-assembler /usr/lib/libjansson.so.4 /usr/lib/
-# net-tools
-COPY --from=image-assembler /bin/netstat /bin/
-COPY --from=image-assembler /sbin/ipmaddr /sbin/
-COPY --from=image-assembler /sbin/plipconfig /sbin/
-COPY --from=image-assembler /sbin/rarp /sbin/
-# procps-ng
-COPY --from=image-assembler /bin/slabtop /bin/
-COPY --from=image-assembler /bin/vmstat /bin/
-COPY --from=image-assembler /bin/w /bin/
-# strace
-COPY --from=image-assembler /usr/bin/strace* /usr/bin/
-# tcpdump
-COPY --from=image-assembler /usr/bin/tcpdump /usr/bin/
-COPY --from=image-assembler /usr/lib/libpcap.so.1 /usr/lib/ 
-# zabbix
-COPY --from=image-assembler /usr/sbin/zabbix_agentd /usr/sbin/
-COPY --from=image-assembler /etc/zabbix/zabbix_agentd.conf /etc/zabbix/
-# telegraf
-COPY --from=image-assembler /root/telegraf/telegraf /usr/bin/telegraf
+
+# telegraf conf
 COPY --from=image-assembler /root/telegraf/telegraf.conf /etc/telegraf/
 
 LABEL org.opencontainers.image.source=https://github.com/lorenzocipriani/networktest
